@@ -1,16 +1,15 @@
 {
   "uuid": "0fc36711-2e11-4c5e-b10e-ad4a931b0733",
-  "shortName": "sakuya-watchface",
-  "longName": "sakuya-watchface",
-  "companyName": "MakeAwesomeHappen",
+  "shortName": "Sakuya",
+  "longName": "Sakuya",
+  "companyName": "Kenny Do",
   "versionLabel": "1.0",
   "sdkVersion": "3",
-  "targetPlatforms": ["aplite", "basalt"],
+  "targetPlatforms": ["basalt"],
   "watchapp": {
-    "watchface": false
+    "watchface": true
   },
   "appKeys": {
-    "dummy": 0
   },
   "resources": {
     "media": []

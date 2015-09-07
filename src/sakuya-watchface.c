@@ -1,60 +1,115 @@
 #include <pebble.h>
 
-static Window *window;
-static TextLayer *text_layer;
+static Window *s_main_window;
+static TextLayer *s_time_layer;
+static TextLayer *s_date_layer;
+static TextLayer *s_date_background_layer;
 
-static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(text_layer, "Select");
+static void update_time() {
+  // Get a tm structure
+  time_t temp = time(NULL);
+  struct tm *tick_time = localtime(&temp);
+
+  // Create a long-lived buffer
+  static char buffer[] = "00:00";
+
+  // Write the current hours and minutes into the buffer
+  if(clock_is_24h_style() == true) {
+    // Use 24 hour format
+    strftime(buffer, sizeof("00:00"), "%H:%M", tick_time);
+  } else {
+    // Use 12 hour format
+    strftime(buffer, sizeof("00:00"), "%I:%M", tick_time);
+  }
+
+  // Display this time on the TextLayer
+  text_layer_set_text(s_time_layer, buffer);
 }
 
-static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(text_layer, "Up");
+static void update_date() {
+  // Get a tm structure
+  time_t temp = time(NULL);
+  struct tm *tick_time = localtime(&temp);
+
+  // Create a long-lived buffer
+  static char buffer[] = "Mon, Jan 31";
+  strftime(buffer, sizeof("Mon, Jan 31"), "%a, %b %e", tick_time);
+
+  text_layer_set_text(s_date_layer, buffer);
 }
 
-static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(text_layer, "Down");
+static void main_window_load(Window *window) {
+  // Create time TextLayer
+  s_time_layer = text_layer_create(GRect(0, 16, 144, 84));
+  text_layer_set_background_color(s_time_layer, GColorWhite);
+  text_layer_set_text_color(s_time_layer, GColorBlack);
+
+  // Improve the layout to be more like a watchface
+  text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS));
+  text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
+
+  // Add it as a child layer to the Window's root layer
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_time_layer));
+
+  // Create the date background layer
+  s_date_background_layer = text_layer_create(GRect(0, 84, 144, 26));
+  text_layer_set_background_color(s_date_background_layer, GColorFolly);
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_date_background_layer));
+
+  // Now do the date layer
+    s_date_layer = text_layer_create(GRect(0, 80, 144, 30));
+    text_layer_set_background_color(s_date_layer, GColorClear);
+    text_layer_set_text_color(s_date_layer, GColorWhite);
+
+    // Improve the layout to be more like a watchface
+    text_layer_set_font(s_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+    text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
+
+    // Add it as a child layer to the Window's root layer
+    layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_date_layer));
 }
 
-static void click_config_provider(void *context) {
-  window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
-  window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+static void main_window_unload(Window *window) {
+    // Destroy TextLayer
+    text_layer_destroy(s_time_layer);
 }
 
-static void window_load(Window *window) {
-  Layer *window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_bounds(window_layer);
-
-  text_layer = text_layer_create((GRect) { .origin = { 0, 72 }, .size = { bounds.size.w, 20 } });
-  text_layer_set_text(text_layer, "Press a button");
-  text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(text_layer));
+static void minute_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  update_time();
 }
 
-static void window_unload(Window *window) {
-  text_layer_destroy(text_layer);
+static void day_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  update_date();
 }
 
-static void init(void) {
-  window = window_create();
-  window_set_click_config_provider(window, click_config_provider);
-  window_set_window_handlers(window, (WindowHandlers) {
-    .load = window_load,
-    .unload = window_unload,
+static void init() {
+  s_main_window = window_create();
+
+  // Set handlers to manage the elements inside the Window
+  window_set_window_handlers(s_main_window, (WindowHandlers) {
+    .load = main_window_load,
+    .unload = main_window_unload
   });
-  const bool animated = true;
-  window_stack_push(window, animated);
+
+  // Register with TickTimerService
+  tick_timer_service_subscribe(MINUTE_UNIT, minute_tick_handler);
+  tick_timer_service_subscribe(DAY_UNIT, day_tick_handler);
+
+  // Show the Window on the watch, with animated=true
+  window_stack_push(s_main_window, true);
+
+  // Make sure the time is displayed from the start
+  update_time();
+  update_date();
 }
 
-static void deinit(void) {
-  window_destroy(window);
+static void deinit() {
+    // Destroy Window
+    window_destroy(s_main_window);
 }
 
 int main(void) {
   init();
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", window);
-
   app_event_loop();
   deinit();
 }
