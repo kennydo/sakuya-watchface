@@ -20,6 +20,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     }
     if (units_changed & DAY_UNIT) {
         date_component_on_day_tick(s_date_component, tick_time, units_changed);
+        calendar_component_on_day_tick(s_calendar_component, tick_time, units_changed);
     }
 }
 
