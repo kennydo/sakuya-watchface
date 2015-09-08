@@ -3,7 +3,7 @@
 
 typedef struct {
     TextLayer *text_layer;
-    char* buffer;
+    char buffer[sizeof(SAMPLE_TIME_STRING)];
 } TimeComponent;
 
 void time_component_on_minute_tick(TimeComponent* component, struct tm *tick_time, TimeUnits units_changed) {
@@ -34,8 +34,8 @@ TimeComponent* time_component_create(Layer* parentLayer) {
 
     layer_add_child(parentLayer, text_layer_get_layer(component->text_layer));
 
-    component->buffer = malloc(sizeof(SAMPLE_TIME_STRING));
-    component->buffer = SAMPLE_TIME_STRING;
+    //component->buffer = malloc(sizeof(SAMPLE_TIME_STRING));
+    strncpy(component->buffer, SAMPLE_TIME_STRING, sizeof(SAMPLE_TIME_STRING));
 
     time_t temp = time(NULL);
     struct tm *tick_time = localtime(&temp);
@@ -50,8 +50,7 @@ void time_component_destroy(TimeComponent* component) {
         return;
     }
 
+APP_LOG(APP_LOG_LEVEL_ERROR, "unloading text");
     text_layer_destroy(component->text_layer);
-    free(component->buffer);
-
     free(component);
 }

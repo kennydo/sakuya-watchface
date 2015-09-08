@@ -4,7 +4,7 @@
 typedef struct {
     TextLayer *text_layer;
     TextLayer *background_layer;
-    char* buffer;
+    char buffer[sizeof(SAMPLE_DATE_STRING)];
 } DateComponent;
 
 void date_component_on_day_tick(DateComponent* component, struct tm *tick_time, TimeUnits units_changed) {
@@ -37,8 +37,7 @@ DateComponent* date_component_create(Layer* parentLayer) {
 
     layer_add_child(parentLayer, text_layer_get_layer(component->text_layer));
 
-    component->buffer = malloc(sizeof(SAMPLE_DATE_STRING));
-    component->buffer = SAMPLE_DATE_STRING;
+    strncpy(component->buffer, SAMPLE_DATE_STRING, sizeof(SAMPLE_DATE_STRING));
 
     time_t temp = time(NULL);
     struct tm *tick_time = localtime(&temp);
@@ -55,7 +54,5 @@ void date_component_destroy(DateComponent* component) {
 
     text_layer_destroy(component->text_layer);
     text_layer_destroy(component->background_layer);
-    free(component->buffer);
-
     free(component);
 }
